@@ -33,20 +33,12 @@ const bootstrap = async () => {
   app.set("trust proxy", isProd ? 2 : false);
 
   // CORS
-  app.use(
-    cors({
-      origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
-          return callback(null, true);
-        }
-
-        // Reject everything else
-        callback(new Error("CORS not allowed"), false);
-      },
-      credentials: true,
-    }),
-  );
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN,
+    credentials: true,
+  })
+);
 
   // Security headers
   app.use(helmet());
