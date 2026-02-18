@@ -1,7 +1,9 @@
 import { compareHashed, hashValue } from "@/utils/bcrypt/bcrypt.util";
+import { sendResetCodeEmail } from "@/utils/mail/mail.util";
+import crypto from "crypto";
 import { Request, Response } from "express";
-
 // libraries
+
 import { v4 as uuid } from "uuid";
 // Models
 // Services
@@ -161,4 +163,78 @@ export const logout = async (req: Request, res: Response) => {
 
   // Send response
   return res.status(200).json({ message: "Logged out successfully." });
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new AppError("Email is required.", 400);
+  }
+
+  const account = await findAccountS({ email });
+
+  // Prevent email enumeration
+  if (!account) {
+    return res.status(200).json({
+      message: "If an account exists, a reset code was sent.",
+    });
+  }
+
+  const code = crypto.randomInt(100000, 999999).toString();
+  const hashedCode = await hashValue(code);
+
+  await Account.updateOne(
+    { _id: account._id },
+    {
+      passwordResetCode: hashedCode,
+      passwordResetExpires: new Date(Date.now() + 10 * 60 * 1000),
+    },
+  );
+
+  await sendResetCodeEmail(account.email, code);
+
+  return res.status(200).json({
+    message: "If an account exists, a reset code was sent.",
+  });
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  const { email, code, password } = req.body;
+
+  if (!email || !code || !password) {
+    throw new AppError("All fields are required.", 400);
+  }
+
+  const account = await findAccountS({ email });
+
+  if (!account || !account.passwordResetCode || !account.passwordResetExpires) {
+    throw new AppError("Invalid or expired reset request.", 400);
+  }
+
+  if (account.passwordResetExpires < new Date()) {
+    throw new AppError("Reset code expired.", 400);
+  }
+
+  const isMatch = await compareHashed(code, account.passwordResetCode);
+
+  if (!isMatch) {
+    throw new AppError("Invalid reset code.", 400);
+  }
+
+  const newHashedPassword = await hashValue(password);
+
+  await Account.updateOne(
+    { _id: account._id },
+    {
+      password: newHashedPassword,
+      passwordResetCode: undefined,
+      passwordResetExpires: undefined,
+      sessions: [], // revoke all sessions
+    },
+  );
+
+  return res.status(200).json({
+    message: "Password reset successfully.",
+  });
 };

@@ -22,6 +22,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.2.0",
     "morgan": "^1.10.1",
+    "nodemailer": "^8.0.1",
     "tsconfig-paths": "^4.2.0",
     "ua-parser-js": "^2.0.9",
     "uuid": "^13.0.0"
@@ -37,6 +38,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/node": "^25.2.2",
+    "@types/nodemailer": "^7.0.10",
     "@types/ua-parser-js": "^0.7.39",
     "@types/uuid": "^10.0.0",
     "tsx": "^4.21.0",

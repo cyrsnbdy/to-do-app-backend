@@ -50,6 +50,9 @@ export type AccountType = {
   email: string;
   password: string;
   sessions: SessionType[];
+
+  passwordResetCode: string;
+  passwordResetExpires: Date;
 };
 
 export type AccountFilterType = Partial<AccountType>;
