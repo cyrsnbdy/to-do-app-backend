@@ -10,10 +10,7 @@ export const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendResetCodeEmail = async (
-  email: string,
-  code: string,
-) => {
+export const sendResetCodeEmail = async (email: string, code: string) => {
   await transporter.sendMail({
     from: `"Support" <${process.env.SMTP_USER}>`,
     to: email,

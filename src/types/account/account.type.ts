@@ -53,6 +53,7 @@ export type AccountType = {
 
   passwordResetCode: string;
   passwordResetExpires: Date;
+  passwordResetAttempts: { type: Number; default: 0 };
 };
 
 export type AccountFilterType = Partial<AccountType>;

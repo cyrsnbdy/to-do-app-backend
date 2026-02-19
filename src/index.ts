@@ -33,12 +33,12 @@ const bootstrap = async () => {
   app.set("trust proxy", isProd ? 2 : false);
 
   // CORS
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN,
-    credentials: true,
-  })
-);
+  app.use(
+    cors({
+      origin: process.env.CORS_ORIGIN,
+      credentials: true,
+    }),
+  );
 
   // Security headers
   app.use(helmet());
@@ -51,9 +51,6 @@ app.use(
 
   // JSON parser
   app.use(express.json());
-
-  // Prevent NoSQL Injection
-  app.use(expressMongoSanitize());
 
   // Cookie parser
   app.use(cookieParser());
@@ -68,6 +65,9 @@ app.use(
   app.use("/api/token", tokenRouter);
   app.use("/api/account", accountRouter);
   app.use("/api/tasks/", taskRouter);
+
+  // Prevent NoSQL Injection
+  app.use(expressMongoSanitize());
 
   // 404 handler: Invalid route
   app.use((req, res) => {

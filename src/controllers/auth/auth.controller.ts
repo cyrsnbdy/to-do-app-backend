@@ -2,6 +2,7 @@ import { compareHashed, hashValue } from "@/utils/bcrypt/bcrypt.util";
 import { sendResetCodeEmail } from "@/utils/mail/mail.util";
 import crypto from "crypto";
 import { Request, Response } from "express";
+import jwt from "jsonwebtoken";
 // libraries
 
 import { v4 as uuid } from "uuid";
@@ -75,6 +76,7 @@ export const register = async (req: Request, res: Response) => {
 
   // Send response
   return res.status(200).json({
+    name,
     message: "Account registered successfully.",
     accessToken,
   });
@@ -95,6 +97,7 @@ export const login = async (req: Request, res: Response) => {
 
   // Find the account using the provided email
   const account = await findAccountS({ email });
+  const name = account?.name;
 
   // Throw error if account does not exist
   if (!account) {
@@ -128,6 +131,11 @@ export const login = async (req: Request, res: Response) => {
   return res.status(200).json({
     message: "Login successfully.",
     accessToken,
+    user: {
+      id: account._id,
+      name: account.name,
+      email: account.email,
+    },
   });
 };
 
@@ -189,21 +197,25 @@ export const forgotPassword = async (req: Request, res: Response) => {
     {
       passwordResetCode: hashedCode,
       passwordResetExpires: new Date(Date.now() + 10 * 60 * 1000),
+      passwordResetAttempts: 0,
     },
   );
 
-  await sendResetCodeEmail(account.email, code);
+  // Fire and forget
+  sendResetCodeEmail(account.email, code).catch((err) => {
+    console.error("Reset email error:", err);
+  });
 
   return res.status(200).json({
     message: "If an account exists, a reset code was sent.",
   });
 };
 
-export const resetPassword = async (req: Request, res: Response) => {
-  const { email, code, password } = req.body;
+export const verifyResetCode = async (req: Request, res: Response) => {
+  const { email, code } = req.body;
 
-  if (!email || !code || !password) {
-    throw new AppError("All fields are required.", 400);
+  if (!email || !code) {
+    throw new AppError("Email and code are required.", 400);
   }
 
   const account = await findAccountS({ email });
@@ -219,10 +231,53 @@ export const resetPassword = async (req: Request, res: Response) => {
   const isMatch = await compareHashed(code, account.passwordResetCode);
 
   if (!isMatch) {
+    await Account.updateOne(
+      { _id: account._id },
+      { $inc: { passwordResetAttempts: 1 } },
+    );
+
     throw new AppError("Invalid reset code.", 400);
   }
 
-  const newHashedPassword = await hashValue(password);
+  // Create short-lived reset token (5–10 minutes)
+  const resetToken = jwt.sign(
+    { sub: account._id },
+    process.env.JWT_RESET_SECRET as string,
+    { expiresIn: "10m" },
+  );
+
+  return res.status(200).json({
+    message: "Code verified successfully.",
+    resetToken,
+  });
+};
+
+export const changePassword = async (req: Request, res: Response) => {
+  const { resetToken, newPassword } = req.body;
+  console.log(req.body);
+
+  console.log("RESET SECRET:", process.env.JWT_RESET_SECRET);
+  console.log("TOKEN:", resetToken);
+
+  if (!resetToken || !newPassword) {
+    throw new AppError("Reset token and new password are required.", 400);
+  }
+
+  let payload: any;
+
+  try {
+    payload = jwt.verify(resetToken, process.env.JWT_RESET_SECRET as string);
+  } catch (err) {
+    throw new AppError("Invalid or expired reset token.", 400);
+  }
+
+  const account = await Account.findById(payload.sub);
+
+  if (!account) {
+    throw new AppError("Account not found.", 404);
+  }
+
+  const newHashedPassword = await hashValue(newPassword);
 
   await Account.updateOne(
     { _id: account._id },
@@ -230,11 +285,12 @@ export const resetPassword = async (req: Request, res: Response) => {
       password: newHashedPassword,
       passwordResetCode: undefined,
       passwordResetExpires: undefined,
+      passwordResetAttempts: 0,
       sessions: [], // revoke all sessions
     },
   );
 
   return res.status(200).json({
-    message: "Password reset successfully.",
+    message: "Password changed successfully.",
   });
 };

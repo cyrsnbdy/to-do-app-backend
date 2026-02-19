@@ -6,7 +6,6 @@ import {
 } from "@/types/account/account.type";
 import { model, Model, Schema } from "mongoose";
 
-
 const GeoSchema = new Schema<GeoType>({
   range: [Number],
   country: String,
@@ -52,8 +51,6 @@ const SessionSchema = new Schema<SessionType>({
   expiresAt: Date,
 });
 
-
-
 const AccountSchema = new Schema<AccountDocumentType>(
   {
     name: { type: String, required: true },
@@ -63,6 +60,7 @@ const AccountSchema = new Schema<AccountDocumentType>(
 
     passwordResetCode: { type: String },
     passwordResetExpires: { type: Date },
+    passwordResetAttempts: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
@@ -71,7 +69,5 @@ const Account: Model<AccountDocumentType> = model<
   AccountDocumentType,
   Model<AccountDocumentType>
 >("accounts", AccountSchema);
-
-
 
 export default Account;
