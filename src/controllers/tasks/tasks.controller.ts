@@ -17,6 +17,7 @@ interface AuthRequest extends Request {
 
 export const addTask = async (req: AuthRequest, res: Response) => {
   const { task } = req.body;
+  const { taskDescription } = req.body;
   const userId = req.account?._id; // Get user ID from authenticated account
 
   if (!userId) {
@@ -36,6 +37,7 @@ export const addTask = async (req: AuthRequest, res: Response) => {
 
   // Create the task with userId
   const newTask = await createTask({
+    taskDescription,
     task,
     completed: false,
     userId,

@@ -1,6 +1,7 @@
 import { Document } from "mongoose";
 
 export type TaskType = {
+  taskDescription: string;
   task: string;
   completed: boolean;
   userId: string; // Add this field

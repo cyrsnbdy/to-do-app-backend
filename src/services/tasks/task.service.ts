@@ -3,6 +3,7 @@ import { Task } from "@/models/tasks/task.model";
 
 // Create a task for a specific user
 export const createTask = async (taskData: {
+  taskDescription: string;
   task: string;
   completed: boolean;
   userId: string;
@@ -33,7 +34,11 @@ export const getUserTaskById = async (taskId: string, userId: string) => {
 export const updateUserTaskById = async (
   taskId: string,
   userId: string,
-  updateData: Partial<{ task: string; completed: boolean }>,
+  updateData: Partial<{
+    task: string;
+    taskDescription: string;
+    completed: boolean;
+  }>,
 ) => {
   return await Task.findOneAndUpdate(
     { _id: taskId, userId },
